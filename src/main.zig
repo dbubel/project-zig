@@ -1,35 +1,15 @@
-// const std = @import("std");
-
-// pub fn main() !void {
-//     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-//     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-//     // stdout is for the actual output of your application, for example if you
-//     // are implementing gzip, then only the compressed bytes should be sent to
-//     // stdout, not any debugging messages.
-//     const stdout_file = std.io.getStdOut().writer();
-//     var bw = std.io.bufferedWriter(stdout_file);
-//     const stdout = bw.writer();
-
-//     try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-//     try bw.flush(); // don't forget to flush!
-// }
-
-// test "simple test" {
-//     var list = std.ArrayList(i32).init(std.testing.allocator);
-//     defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-//     try list.append(42);
-//     try std.testing.expectEqual(@as(i32, 42), list.pop());
-// }
-
 const std = @import("std");
 const net = std.net;
 
 var gpa_server = std.heap.GeneralPurposeAllocator(.{}){};
-// var gpa_client = std.heap.GeneralPurposeAllocator(.{ .stack_trace_frames = 12 }){};
-
 var salloc = gpa_server.allocator();
+
+// var buffer: [10_000]u8 = undefined;
+// var fba = std.heap.FixedBufferAllocator.init(&buffer);
+// const asdf = fba.allocator();
+
+var gpa_handler = std.heap.GeneralPurposeAllocator(.{}){};
+var asdf = gpa_server.allocator();
 
 pub const HttpServer = struct {
     server: std.http.Server,
@@ -69,10 +49,6 @@ pub const HttpServer = struct {
     }
 };
 
-var buffer: [10_000]u8 = undefined;
-var fba = std.heap.FixedBufferAllocator.init(&buffer);
-const asdf = fba.allocator();
-
 fn handleRequest(res: *std.http.Server.Response) !void {
     // const log = std.log.scoped(.server);
 
@@ -91,12 +67,12 @@ fn handleRequest(res: *std.http.Server.Response) !void {
     // }
 
     const body = try res.reader().readAllAlloc(asdf, 1024);
-
+    std.debug.print("{s}", .{body});
     defer asdf.free(body);
 
-    // if (res.request.headers.contains("connection")) {
-    //     try res.headers.append("connection", "keep-alive");
-    // }
+    if (res.request.headers.contains("connection")) {
+        try res.headers.append("connection", "keep-alive");
+    }
 
     // if (std.mem.startsWith(u8, res.request.target, "/get")) {
 
@@ -104,11 +80,6 @@ fn handleRequest(res: *std.http.Server.Response) !void {
     //     res.transfer_encoding = .chunked;
     // } else {
     var resp = "hello, world!\n";
-    // convert this slice to a json object
-    var buf: [100]u8 = undefined;
-    _ = buf;
-    var j = try std.json.parseFromSlice(u8, asdf, "{}", std.json.ParseOptions{});
-    _ = j;
 
     res.transfer_encoding = .{ .content_length = resp.len };
     res.status = .ok;
@@ -136,7 +107,7 @@ fn printSlice(slice: []const u8) void {
 
 const Person = struct {
     name: []u8,
-    age: u8,
+    age: u16,
     city: []u8,
 };
 
