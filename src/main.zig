@@ -91,9 +91,8 @@ fn handleRequest(res: *std.http.Server.Response) !void {
     // }
 
     const body = try res.reader().readAllAlloc(asdf, 1024);
-    defer asdf.free(body);
 
-    // std.io.bufferedReader(reader: anytype).
+    defer asdf.free(body);
 
     // if (res.request.headers.contains("connection")) {
     //     try res.headers.append("connection", "keep-alive");
@@ -105,24 +104,56 @@ fn handleRequest(res: *std.http.Server.Response) !void {
     //     res.transfer_encoding = .chunked;
     // } else {
     var resp = "hello, world!\n";
+    // convert this slice to a json object
+    var buf: [100]u8 = undefined;
+    _ = buf;
+    var j = try std.json.parseFromSlice(u8, asdf, "{}", std.json.ParseOptions{});
+    _ = j;
+
     res.transfer_encoding = .{ .content_length = resp.len };
-    // }
-    // defer fn () void{};
-    // res.finish();
+    res.status = .ok;
+
     try res.headers.append("content-type", "text/plain");
 
     try res.do();
-
-    // if (res.request.method != .HEAD) {
     try res.writeAll(resp);
     try res.finish();
-    // } else {
-    //     try std.testing.expectEqual(res.writeAll("errors"), error.NotWriteable);
-    // }
-    // }
 }
 
 pub fn main() !void {
     var server: HttpServer = undefined;
     try server.listen(try net.Address.parseIp("127.0.0.1", 8080));
+}
+
+// a function to loop over a slice and print each value
+fn printSlice(slice: []const u8) void {
+    // loop over each value in the slice
+    for (slice) |value| {
+        // print the value
+        std.debug.print("{d}\n", .{value});
+    }
+}
+
+const Person = struct {
+    name: []u8,
+    age: u8,
+    city: []u8,
+};
+
+test "json test" {
+    const allocator = std.testing.allocator;
+
+    const jsonString = "{\"name\": \"John Doe\", \"age\": 300, \"city\": \"New York\"}";
+
+    var options = std.json.ParseOptions{};
+    _ = options;
+
+    var parsedPerson = try std.json.parseFromSlice(Person, allocator, jsonString, .{});
+    defer parsedPerson.deinit();
+
+    const person = parsedPerson.value;
+
+    std.debug.print("Name: {s}\n", .{person.name});
+    std.debug.print("Age: {d}\n", .{person.age});
+    std.debug.print("City: {s}\n", .{person.city});
 }
