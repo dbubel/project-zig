@@ -4,6 +4,10 @@ const net = std.net;
 var gpa_server = std.heap.GeneralPurposeAllocator(.{}){};
 var salloc = gpa_server.allocator();
 
+pub const asdf struct{
+    
+}
+
 // var buffer: [10_000]u8 = undefined;
 // var fba = std.heap.FixedBufferAllocator.init(&buffer);
 // const asdf = fba.allocator();
@@ -55,6 +59,10 @@ pub const HttpServer = struct {
 
                 if (std.mem.startsWith(u8, res.request.target, "/json")) {
                     try handleRequestJson(&res);
+                }
+
+                if (std.mem.startsWith(u8, res.request.target, "/json-stream")) {
+                    try handleRequestJsonStream(&res);
                 }
             }
         }
@@ -136,7 +144,7 @@ fn handleRequestJson(res: *std.http.Server.Response) !void {
     } else {
         json_to_send = "null";
     }
-
+    std.debug.print("{d}", .{json_to_send.len});
     // const jsond = stringifyBuf(&buff, p, std.json.StringifyOptions{});
     res.transfer_encoding = .{ .content_length = json_to_send.len };
     res.status = .ok;
@@ -146,6 +154,33 @@ fn handleRequestJson(res: *std.http.Server.Response) !void {
     try res.finish();
     // try res.writeAll(list.items);
 
+}
+
+fn handleRequestJsonStream(res: *std.http.Server.Response) !void {
+    std.debug.print("hello", .{});
+    var p: Person = Person{
+        .name = "John Doe",
+        .age = 300,
+        .city = "New York",
+    };
+
+    const body = try res.reader().readAllAlloc(asdf, 1024);
+    std.debug.print("{s}", .{body});
+    defer asdf.free(body);
+
+    try res.headers.append("content-type", "application/json");
+
+    // res.do() catch |err| {
+    //     std.debug.print("{}", .{err});
+    // };
+
+    var ws = std.json.writeStream(res.writer(), .{ .whitespace = .indent_4 });
+    try ws.write(p);
+
+    res.transfer_encoding = .{ .content_length = 47 };
+    res.status = .ok;
+    // res.writeAll();
+    try res.finish();
 }
 
 pub fn main() !void {
