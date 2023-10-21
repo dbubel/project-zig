@@ -28,7 +28,7 @@ pub const linked_list = struct {
 
     pub fn remove(self: *linked_list, value: i32) void {
         // case that the value were looking for is the head of the list
-        if (self.head) |head| {
+        if (!self.head) |head| {
             if (head.value == value) {
                 self.head = head.next;
                 self.allocator.destroy(head);

@@ -26,10 +26,12 @@ pub const linked_list = struct {
         new_node.* = Node{ .value = value, .prev = self.tail, .next = null };
         // std.debug.print("new node {any}\n", .{new_node});
         self.tail = new_node;
-        if (self.head) |head| {
+        if (!self.head) |head| {
             _ = head;
+            std
+                .
             // std.debug.print("adding head {any}\n", .{head});
-            // self.head = new_node;
+                self.head = new_node;
         } else {
             // std.debug.print("not adding head\n", .{});
             self.head = new_node;
@@ -39,7 +41,9 @@ pub const linked_list = struct {
 
     pub fn printHead(self: *linked_list) void {
         std.debug.print("HEAD {any}\n", .{self.head});
+        std.debug.print("\n", .{});
     }
+
     pub fn print(self: *linked_list) void {
         var current_node: ?*Node = self.head;
         while (current_node) |i| {
